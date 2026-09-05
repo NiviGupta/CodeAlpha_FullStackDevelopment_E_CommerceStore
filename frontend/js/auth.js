@@ -2,6 +2,10 @@ function isApiUnavailable(error) {
   return error.name === 'TypeError' || error.message === 'Failed to fetch';
 }
 
+function isStaticDemoSite() {
+  return window.location.hostname.endsWith('github.io');
+}
+
 function createDemoSession(name, email, password) {
   const users = JSON.parse(localStorage.getItem('demo-users')) || [];
   const existingUser = users.find(user => user.email === email);
@@ -41,6 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('password').value.trim();
 
       try {
+        if (isStaticDemoSite()) {
+          loginDemoUser(email, password);
+          window.location.href = 'index.html';
+          return;
+        }
+
         const data = await apiRequest('/auth/login', 'POST', { email, password });
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -65,6 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('password').value.trim();
 
       try {
+        if (isStaticDemoSite()) {
+          createDemoSession(name, email, password);
+          window.location.href = 'index.html';
+          return;
+        }
+
         const data = await apiRequest('/auth/register', 'POST', { name, email, password });
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
