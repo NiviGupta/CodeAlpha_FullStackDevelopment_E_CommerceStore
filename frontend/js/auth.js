@@ -1,3 +1,34 @@
+function isApiUnavailable(error) {
+  return error.name === 'TypeError' || error.message === 'Failed to fetch';
+}
+
+function createDemoSession(name, email, password) {
+  const users = JSON.parse(localStorage.getItem('demo-users')) || [];
+  const existingUser = users.find(user => user.email === email);
+
+  if (existingUser) {
+    throw new Error('An account with this email already exists.');
+  }
+
+  const user = { id: `demo-${Date.now()}`, name, email, password };
+  users.push(user);
+  localStorage.setItem('demo-users', JSON.stringify(users));
+  localStorage.setItem('token', `demo-token-${user.id}`);
+  localStorage.setItem('user', JSON.stringify({ id: user.id, name, email }));
+}
+
+function loginDemoUser(email, password) {
+  const users = JSON.parse(localStorage.getItem('demo-users')) || [];
+  const user = users.find(item => item.email === email && item.password === password);
+
+  if (!user) {
+    throw new Error('Invalid email or password.');
+  }
+
+  localStorage.setItem('token', `demo-token-${user.id}`);
+  localStorage.setItem('user', JSON.stringify({ id: user.id, name: user.name, email }));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
@@ -15,7 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         window.location.href = 'index.html';
       } catch (err) {
-        errorMsg.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        try {
+          if (!isApiUnavailable(err)) throw err;
+          loginDemoUser(email, password);
+          window.location.href = 'index.html';
+        } catch (fallbackError) {
+          errorMsg.innerHTML = `<div class="alert alert-danger">${fallbackError.message}</div>`;
+        }
       }
     });
   }
@@ -33,7 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         window.location.href = 'index.html';
       } catch (err) {
-        errorMsg.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        try {
+          if (!isApiUnavailable(err)) throw err;
+          createDemoSession(name, email, password);
+          window.location.href = 'index.html';
+        } catch (fallbackError) {
+          errorMsg.innerHTML = `<div class="alert alert-danger">${fallbackError.message}</div>`;
+        }
       }
     });
   }
